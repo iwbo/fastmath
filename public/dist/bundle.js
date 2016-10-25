@@ -81,62 +81,73 @@
 	    function Main(props) {
 	        var _this = this;
 	        _super.call(this, props);
-	        this.handleClick = function (e) {
-	            _this.ioSendAwnser(8);
+	        this.handleYesClick = function (e) {
+	            _this.sendAwnser(true);
 	        };
-	        this.ioNewRound = function (data) {
-	            _this.state.connection.round = data.round;
-	            _this.state.connection.clients.forEach(function (client) {
-	                if (client.username === data.winner.username) {
-	                    client.score = data.winner.score;
-	                }
-	            });
-	            _this.setState({ connection: _this.state.connection });
+	        this.handleNoClick = function (e) {
+	            _this.sendAwnser(false);
 	        };
-	        this.ioNewScore = function (data) {
-	            _this.state.connection.round = data.round;
-	            _this.state.connection.clientData.score = data.score;
-	            _this.setState({ connection: _this.state.connection });
+	        this.onNewScore = function (data) {
+	            if (data.username === _this.state.connection.clientData.username) {
+	                _this.state.connection.clientData.score = data.score;
+	            }
+	            else {
+	                _this.state.connection.clients.forEach(function (client) {
+	                    if (client.username === data.username) {
+	                        client.score = data.score;
+	                    }
+	                });
+	            }
+	            _this.setState(_this.state);
 	        };
-	        this.ioNoRoom = function (data) {
-	            _this.setState({ connection: data });
+	        this.onRoundOver = function (data) {
+	            _this.state.connection.equation.awnsered = true;
+	            _this.state.gameMessage = data.message;
+	            _this.setState(_this.state);
 	        };
-	        this.ioConnected = function (data) {
-	            _this.setState({ connection: data });
+	        this.onNewRound = function (data) {
+	            _this.state.connection.equation = data;
+	            _this.setState(_this.state);
 	        };
-	        this.ioClientConnected = function (data) {
+	        this.onNoRoom = function (data) {
+	            _this.state.connection = data;
+	            _this.setState(_this.state);
+	        };
+	        this.onConnected = function (data) {
+	            _this.state.connection = data;
+	            _this.setState(_this.state);
+	        };
+	        this.onClientConnected = function (data) {
 	            _this.state.connection.clients.push(data);
-	            _this.setState({ connection: _this.state.connection });
+	            _this.setState(_this.state);
 	        };
-	        this.ioClientDisconnected = function (data) {
+	        this.onClientDisconnected = function (data) {
 	            _this.state.connection.clients = _this.state.connection.clients.filter(function (el) {
 	                return el.username !== data.username;
 	            });
-	            _this.setState({ connection: _this.state.connection });
+	            _this.setState(_this.state);
 	        };
 	        this.ioSocket = io();
-	        this.ioSocket.on('noRoom', this.ioNoRoom);
-	        this.ioSocket.on('connected', this.ioConnected);
-	        this.ioSocket.on('clientConnected', this.ioClientConnected);
-	        this.ioSocket.on('clientDisconnected', this.ioClientDisconnected);
-	        this.ioSocket.on('newRound', this.ioNewRound);
-	        this.ioSocket.on('newScore', this.ioNewScore);
+	        this.ioSocket.on("noRoom", this.onNoRoom);
+	        this.ioSocket.on("connected", this.onConnected);
+	        this.ioSocket.on("clientConnected", this.onClientConnected);
+	        this.ioSocket.on("clientDisconnected", this.onClientDisconnected);
+	        this.ioSocket.on("newScore", this.onNewScore);
+	        this.ioSocket.on("roundOver", this.onRoundOver);
+	        this.ioSocket.on("newRound", this.onNewRound);
 	        this.state = {
 	            connection: {
 	                isEnabled: false,
-	                round: 0,
+	                equation: null,
 	                clientData: {
 	                    score: 0,
 	                    username: "unknown"
 	                },
 	                clients: []
-	            }
+	            },
+	            gameMessage: "Lets start!"
 	        };
 	    }
-	    Main.prototype.componentDidMount = function () {
-	    };
-	    Main.prototype.componentWillUnmount = function () {
-	    };
 	    Main.prototype.render = function () {
 	        return (React.createElement("div", null, 
 	            React.createElement("div", {className: "row"}, 
@@ -144,15 +155,17 @@
 	                    React.createElement("h1", {className: "display-1 text-primary"}, "fastmath")
 	                ), 
 	                React.createElement("div", {className: "col-sm-4"}, 
+	                    this.state.connection.equation &&
+	                        React.createElement("h1", {className: "display-3 text-primary"}, 
+	                            React.createElement("span", {className: "text-nowrap"}, 
+	                                "round: ", 
+	                                this.state.connection.equation.roundID)
+	                        ), 
 	                    React.createElement("h1", {className: "display-3 text-primary"}, 
 	                        React.createElement("span", {className: "text-nowrap"}, 
-	                            "round: ", 
-	                            this.state.connection.round), 
-	                        React.createElement("br", null), 
-	                        React.createElement("span", {className: "text-nowrap"}, 
 	                            "score: ", 
-	                            this.state.connection.clientData.score))
-	                )), 
+	                            this.state.connection.clientData.score)
+	                    ))), 
 	            React.createElement("div", {className: "row"}, 
 	                React.createElement("div", {className: "col-sm-6 offset-sm-1"}, 
 	                    this.state.connection.isEnabled &&
@@ -161,7 +174,7 @@
 	                                "Hello ", 
 	                                React.createElement("strong", null, this.state.connection.clientData.username), 
 	                                "!"), 
-	                            React.createElement(game_1.Game, {add: 2, handleClick: this.handleClick})), 
+	                            React.createElement(game_1.Game, {message: this.state.gameMessage, equation: this.state.connection.equation, handleYesClick: this.handleYesClick, handleNoClick: this.handleNoClick})), 
 	                    !this.state.connection.isEnabled && this.state.connection.clientData.username != "unknown" &&
 	                        React.createElement("div", null, 
 	                            React.createElement("h2", {className: "display-4"}, 
@@ -171,25 +184,24 @@
 	                                React.createElement("strong", null, this.state.connection.clientData.username), 
 	                                "!"), 
 	                            React.createElement("h3", {className: "display-6"}, "Please wait for someone to leave the game"))), 
-	                this.state.connection.clients.length > 0 &&
-	                    React.createElement("div", {className: "col-sm-4"}, 
-	                        React.createElement("ul", {className: "list-group"}, 
-	                            React.createElement("li", {href: "#", className: "list-group-item active"}, 
-	                                React.createElement("h5", {className: "list-group-item-heading"}, 
-	                                    this.state.connection.clients.length, 
-	                                    this.state.connection.clients.length === 1 &&
-	                                        React.createElement("span", null, " player also playing"), 
-	                                    this.state.connection.clients.length > 1 &&
-	                                        React.createElement("span", null, " players also playing"), 
-	                                    React.createElement("span", null, "..."))
-	                            ), 
-	                            this.state.connection.clients.map(function (client) {
-	                                return React.createElement(client_1.Client, {key: client.username, username: client.username, score: client.score});
-	                            }))
-	                    ))));
+	                React.createElement("div", {className: "col-sm-4"}, 
+	                    React.createElement("ul", {className: "list-group"}, 
+	                        React.createElement("li", {href: "#", className: "list-group-item active"}, 
+	                            React.createElement("h5", {className: "list-group-item-heading"}, 
+	                                this.state.connection.clients.length, 
+	                                this.state.connection.clients.length === 1 &&
+	                                    React.createElement("span", null, " player also playing"), 
+	                                this.state.connection.clients.length > 1 &&
+	                                    React.createElement("span", null, " players also playing"), 
+	                                React.createElement("span", null, "..."))
+	                        ), 
+	                        this.state.connection.clients.map(function (client) {
+	                            return React.createElement(client_1.Client, {key: client.username, username: client.username, score: client.score});
+	                        }))
+	                ))));
 	    };
-	    Main.prototype.ioSendAwnser = function (value) {
-	        this.ioSocket.emit("answer", { round: this.state.connection.round, value: value });
+	    Main.prototype.sendAwnser = function (yes) {
+	        this.ioSocket.emit("answer", { roundID: this.state.connection.equation.roundID, yes: yes });
 	    };
 	    return Main;
 	}(React.Component));
@@ -238,15 +250,32 @@
 	    function Game() {
 	        var _this = this;
 	        _super.apply(this, arguments);
-	        this.handleClick = function (e) {
+	        this.handleYesClick = function (e) {
 	            e.preventDefault();
-	            _this.props.handleClick(e);
+	            _this.props.handleYesClick(e);
+	        };
+	        this.handleNoClick = function (e) {
+	            e.preventDefault();
+	            _this.props.handleNoClick(e);
 	        };
 	    }
 	    Game.prototype.render = function () {
-	        return (React.createElement("div", null, 
-	            React.createElement("h1", null, this.props.add), 
-	            React.createElement("a", {href: "#", className: "btn btn-primary", onClick: this.handleClick}, "Click me")));
+	        return (React.createElement("div", null, this.props.equation &&
+	            React.createElement("div", null, 
+	                React.createElement("h1", null, 
+	                    this.props.equation.number1, 
+	                    " ", 
+	                    this.props.equation.operator, 
+	                    " ", 
+	                    this.props.equation.number2, 
+	                    "=", 
+	                    this.props.equation.awnser), 
+	                !this.props.equation.awnsered &&
+	                    React.createElement("div", null, 
+	                        React.createElement("a", {href: "#", className: "btn btn-primary", onClick: this.handleYesClick}, "Yes"), 
+	                        React.createElement("a", {href: "#", className: "btn btn-primary", onClick: this.handleNoClick}, "No")), 
+	                this.props.equation.awnsered &&
+	                    React.createElement("h1", null, this.props.message))));
 	    };
 	    return Game;
 	}(React.Component));

@@ -5,6 +5,9 @@ declare global {
             emit<T>(event: string, args: T): Socket;
             on<T>(event: string, func: (data: T) => void): Socket;
         }
+        interface Namespace {
+            emit<T>(event: string, args: T): boolean;
+        }
     }
 
     namespace SocketIOClient {
@@ -18,6 +21,21 @@ declare global {
 
 
 export module DTM {
+    export interface IRound {
+        hasWinner: boolean;
+        id: number,
+        equation: IEquation,
+        correctAwnser: number
+    }
+    export interface IEquation {
+        number1: number;
+        number2: number;
+        awnser: number;
+        operator: string;
+        roundID: number;
+        awnsered: boolean;
+    }
+
 
     export interface IClientData {
         username: string;
@@ -27,24 +45,24 @@ export module DTM {
 
     export interface IConnection {
         isEnabled: boolean;
-        round: number;
+        equation: IEquation,
         clientData: IClientData;
         clients: IClientData[];
     }
 
 
     export interface INewScore {
-        round: number;
+        username: string;
         score: number;
+        point: number;
     }
-    export interface INewRound {
-        round: number;
-        winner: IClientData;
+    export interface IRoundOver {
+        message: string;
     }
 
     export interface IAnswer {
-        round: number;
-        value: number;
+        roundID: number;
+        yes: boolean;
     }
 }
 

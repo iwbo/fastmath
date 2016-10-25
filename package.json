@@ -3,8 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "description": "Much math. Very number. Wow.",
+  "author": "Kert Kaelep",
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "4.13.4",
@@ -14,9 +15,10 @@
     "socket.io": "^1.5.0"
   },
   "devDependencies": {
+    "@types/express": "^4.0.33",
+    "@types/node": "^6.0.45",
     "@types/react": "^0.14.41",
     "@types/react-dom": "^0.14.18",
-    "@types/node": "^6.0.45",
     "@types/socket.io": "^1.4.27",
     "@types/socket.io-client": "^1.4.27",
     "source-map-loader": "^0.1.5",

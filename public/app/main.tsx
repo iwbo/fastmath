@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Client } from "./client";
 import { Game, IGame } from "./game";
-import { DTM } from "../../dataTransferModels";
+import { DTM } from "../../shared/dtm";
 
 declare var io: SocketIOClientStatic;
 
@@ -9,6 +9,7 @@ declare var io: SocketIOClientStatic;
 
 export interface MainState {
     connection: DTM.IConnection;
+    gameMessage: string;
 }
 
 
@@ -18,35 +19,31 @@ export class Main extends React.Component<any, MainState> {
         super(props);
 
         this.ioSocket = io();
-        this.ioSocket.on<DTM.IConnection>('noRoom', this.ioNoRoom);
-        this.ioSocket.on<DTM.IConnection>('connected', this.ioConnected);
-        this.ioSocket.on<DTM.IClientData>('clientConnected', this.ioClientConnected);
-        this.ioSocket.on<DTM.IClientData>('clientDisconnected', this.ioClientDisconnected);
-        this.ioSocket.on<DTM.INewRound>('newRound', this.ioNewRound);
-        this.ioSocket.on<DTM.INewScore>('newScore', this.ioNewScore);
+        this.ioSocket.on<DTM.IConnection>("noRoom", this.onNoRoom);
+        this.ioSocket.on<DTM.IConnection>("connected", this.onConnected);
+        this.ioSocket.on<DTM.IClientData>("clientConnected", this.onClientConnected);
+        this.ioSocket.on<DTM.IClientData>("clientDisconnected", this.onClientDisconnected);
+        this.ioSocket.on<DTM.INewScore>("newScore", this.onNewScore);
+        this.ioSocket.on<DTM.IRoundOver>("roundOver", this.onRoundOver)
+        this.ioSocket.on<DTM.IEquation>("newRound", this.onNewRound)
 
         this.state = {
             connection: {
                 isEnabled: false,
-                round: 0,
+                equation: null,
                 clientData: {
                     score: 0,
                     username: "unknown"
                 },
                 clients: []
-            }
+            },
+            gameMessage: "Lets start!"
         }
     }
 
     ioSocket: SocketIOClient.Socket;
 
-    componentDidMount() {
 
-    }
-
-    componentWillUnmount() {
-
-    }
 
     render() {
         return (
@@ -56,8 +53,10 @@ export class Main extends React.Component<any, MainState> {
                         <h1 className="display-1 text-primary">fastmath</h1>
                     </div>
                     <div className="col-sm-4">
-                        <h1 className="display-3 text-primary"><span className="text-nowrap">round: {this.state.connection.round}</span>
-                        <br /><span className="text-nowrap">score: {this.state.connection.clientData.score}</span></h1>
+                        {this.state.connection.equation &&
+                            <h1 className="display-3 text-primary"><span className="text-nowrap">round: {this.state.connection.equation.roundID}</span></h1>
+                        }
+                        <h1 className="display-3 text-primary"><span className="text-nowrap">score: {this.state.connection.clientData.score}</span></h1>
                     </div>
                 </div>
                 <div className="row">
@@ -66,7 +65,7 @@ export class Main extends React.Component<any, MainState> {
                         {this.state.connection.isEnabled &&
                             <div>
                                 <h2 className="display-4">Hello <strong>{this.state.connection.clientData.username}</strong>!</h2>
-                                <Game add={2} handleClick={this.handleClick} />
+                                <Game message={this.state.gameMessage} equation={this.state.connection.equation} handleYesClick={this.handleYesClick} handleNoClick={this.handleNoClick} />
                             </div>
                         }
                         {!this.state.connection.isEnabled && this.state.connection.clientData.username != "unknown" &&
@@ -76,75 +75,88 @@ export class Main extends React.Component<any, MainState> {
                             </div>
                         }
                     </div>
-                    {this.state.connection.clients.length > 0 &&
-                        <div className="col-sm-4">
-                            <ul className="list-group">
-                                <li href="#" className="list-group-item active">
-                                    <h5 className="list-group-item-heading">
-                                        {this.state.connection.clients.length}
-                                        {this.state.connection.clients.length === 1 &&
-                                            <span> player also playing</span>
-                                        }
-                                        {this.state.connection.clients.length > 1 &&
-                                            <span> players also playing</span>
-                                        }
-                                        <span>...</span>
-                                    </h5>
-                                </li>
-                                {this.state.connection.clients.map((client) =>
-                                    <Client key={client.username} username={client.username} score={client.score} />
-                                )}
-                            </ul>
-                        </div>
-                    }
+
+                    <div className="col-sm-4">
+                        <ul className="list-group">
+                            <li href="#" className="list-group-item active">
+                                <h5 className="list-group-item-heading">
+                                    {this.state.connection.clients.length}
+                                    {this.state.connection.clients.length === 1 &&
+                                        <span> player also playing</span>
+                                    }
+                                    {this.state.connection.clients.length > 1 &&
+                                        <span> players also playing</span>
+                                    }
+                                    <span>...</span>
+                                </h5>
+                            </li>
+                            {this.state.connection.clients.map((client) =>
+                                <Client key={client.username} username={client.username} score={client.score} />
+                            )}
+                        </ul>
+                    </div>
+
 
                 </div>
             </div>
         );
     }
 
-    handleClick = (e: React.MouseEvent<any>) => {
-        this.ioSendAwnser(8);
+    handleYesClick = (e: React.MouseEvent<any>) => {
+        this.sendAwnser(true);
+    }
+    handleNoClick = (e: React.MouseEvent<any>) => {
+        this.sendAwnser(false);
     }
 
-    ioNewRound = (data: DTM.INewRound) => {
+    onNewScore = (data: DTM.INewScore) => {
 
-        this.state.connection.round = data.round;
 
-        this.state.connection.clients.forEach(client => {
-            if (client.username === data.winner.username) {
-                client.score = data.winner.score;
-            }
-        });
+        if (data.username === this.state.connection.clientData.username) {
+            this.state.connection.clientData.score = data.score;
 
-        this.setState({ connection: this.state.connection });
-    }
-    ioNewScore = (data: DTM.INewScore) => {
-        this.state.connection.round = data.round;
-        this.state.connection.clientData.score = data.score;
-        this.setState({ connection: this.state.connection });
+        } else {
+            this.state.connection.clients.forEach(client => {
+                if (client.username === data.username) {
+                    client.score = data.score;
+                }
+            });
+        }
+
+        this.setState(this.state);
     }
 
-    ioNoRoom = (data: DTM.IConnection) => {
-        this.setState({ connection: data });
+    onRoundOver = (data: DTM.IRoundOver) => {
+        this.state.connection.equation.awnsered = true;
+        this.state.gameMessage = data.message;
+        this.setState(this.state);
     }
-    ioConnected = (data: DTM.IConnection) => {
-        this.setState({ connection: data });
+    onNewRound = (data: DTM.IEquation) => {
+        this.state.connection.equation = data;
+        this.setState(this.state);
     }
-    ioClientConnected = (data: DTM.IClientData) => {
+    onNoRoom = (data: DTM.IConnection) => {
+        this.state.connection = data;
+        this.setState(this.state);
+    }
+    onConnected = (data: DTM.IConnection) => {
+        this.state.connection = data;
+        this.setState(this.state);
+    }
+    onClientConnected = (data: DTM.IClientData) => {
         this.state.connection.clients.push(data);
-        this.setState({ connection: this.state.connection });
+        this.setState(this.state);
 
     }
-    ioClientDisconnected = (data: DTM.IClientData) => {
+    onClientDisconnected = (data: DTM.IClientData) => {
         this.state.connection.clients = this.state.connection.clients.filter((el) => {
             return el.username !== data.username;
         });
-        this.setState({ connection: this.state.connection });
+        this.setState(this.state);
     }
 
-    ioSendAwnser(value: number) {
-        this.ioSocket.emit<DTM.IAnswer>("answer", { round: this.state.connection.round, value: value })
+    sendAwnser(yes: boolean) {
+        this.ioSocket.emit<DTM.IAnswer>("answer", { roundID: this.state.connection.equation.roundID, yes: yes });
     }
 
 }
