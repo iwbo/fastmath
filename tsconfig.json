@@ -1,0 +1,23 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": { 
+        "target": "es5",
+        "module": "commonjs",
+        
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "typeRoots": [
+            "../node_modules/@types"
+        ],
+        "jsx": "react",
+        "types": [
+            "React",
+            "React-Dom",
+            "node",
+            "socket.io",
+            "socket.io-client"
+        ]
+    }
+}
