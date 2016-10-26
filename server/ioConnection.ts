@@ -7,17 +7,25 @@ var names = moniker.generator([moniker.adjective, moniker.noun]);
 export class IoConnection {
     constructor(io: SocketIO.Server) {
         io.on("connection", this.onConnection);
+
+        // listen to round timer
+        Game.emitter.on("nextRoundTime", (data: number) => { this.onNextRoundTime(io, data); });
     }
 
     private onConnection = (socket: SocketIO.Socket) => {
-        // we store the username in the socket session for this client
-        var socetData = socket.clientData = {
-            username: names.choose(),
-            score: 0
-        }
+        // echo globally that this client has left
+        socket.on("disconnect", () => { this.onDisconnected(socket) });
 
+        // we store custom client data in the socket session for this client
+        if (!socket.clientData)
+            socket.clientData = {
+                username: names.choose(), // pick a random name
+                score: 0,
+                lastRound: 0
+            }
+
+        // get custom client data from alread connected clients
         var clients = socket.server.sockets.clients(null).connected;
-
         var otherClients: DTM.IClientData[] = [];
         for (var id in clients) {
             if (clients[id].clientData.username !== socket.clientData.username) {
@@ -25,15 +33,20 @@ export class IoConnection {
             }
         }
 
-        if (otherClients.length < 10) // for up to 10 concurrent users
+
+        if (otherClients.length < 10) // for up to 10 concurrent users can play
         {
             this.connectionAllowed(socket, otherClients);
         } else {
+            // displayies a "No room for you" message to the client 
             this.connectionNotAllowed(socket);
         }
+
+
     }
     private connectionAllowed = (socket: SocketIO.Socket, otherClients: DTM.IClientData[]) => {
 
+        // send back custom connection info to caller
         socket.emit<DTM.IConnection>("connected", {
             isEnabled: true,
             equation: Game.getLastEquation(),
@@ -41,20 +54,17 @@ export class IoConnection {
             clients: otherClients
         });
 
-        // echo globally (all clients) that a person has connected
+        // let others know that a client has connected
         socket.broadcast.emit<DTM.IClientData>("clientConnected", socket.clientData);
 
-
+        // listen to client answer to the equation
         socket.on<DTM.IAnswer>("answer", (data) => {
             this.onAnswer(socket, data);
         });
 
 
-        // when the user disconnects.. perform this
-        socket.on("disconnect", this.onDisconnected);
     }
     private connectionNotAllowed = (socket: SocketIO.Socket) => {
-
         socket.emit<DTM.IConnection>("noRoom", {
             isEnabled: false,
             equation: null,
@@ -64,43 +74,61 @@ export class IoConnection {
     }
 
     private onAnswer = (socket: SocketIO.Socket, data: DTM.IAnswer) => {
+        if (data.roundID > socket.clientData.lastRound) { // don't accept multiple answers
+            socket.clientData.lastRound = data.roundID;
+            var point = Game.getPoint(data);
+            // point == 1, first correct answer
+            // point == 0, late correct answer
+            // point == -1, wrong answer
 
-        var point = Game.getPoint(data);
 
 
-        var message = "Sorry... you are late!";
-        if (point === 1) {
-            message = "Yippee... you are correct!";
-        } else if (point === -1) {
-            message = "Dope... wrong answer!";
-        }
-
-        if (point === 1) {
-            var newEquation = Game.getNextEquation();
+            // round is always over for the caller
             socket.emit<DTM.IRoundOver>("roundOver", {
-                message: "Correct ... you get a point"
+                youAnswered: true,
+                point: point,
+                winner: ""
             });
-            socket.broadcast.emit<DTM.IRoundOver>("roundOver", {
-                message: "Winner is ... "+ socket.clientData.username
-            });
-            setTimeout(() => {
-                socket.server.sockets.emit<DTM.IEquation>("newRound", newEquation);
-            }, 1000 * 5);
-        } else {
-            socket.emit<DTM.IRoundOver>("roundOver", {
-                message: message
-            });
+
+            if (point === 1) { // first correct answer will stop the current round 
+                Game.stopRound(); // stop new round countdown
+
+                // let everybody know that the round is over
+                socket.broadcast.emit<DTM.IRoundOver>("roundOver", {
+                    youAnswered: false,
+                    point: point,
+                    winner: socket.clientData.username
+                });
+                var i = 5; // A new round starts in 5 seconds after the end of last one. 
+                var waitInterval = setInterval(() => {
+                    this.onNextRoundTime(socket.server, --i);
+                    if (i <= 0) {
+                        clearInterval(waitInterval);
+                    }
+                }, 1000 * 1);
+                this.onNextRoundTime(socket.server, i); // send the new time
+            }
+
+            if (point !== 0) { // let everybody know about the new score of the caller
+                socket.clientData.score = socket.clientData.score + point;
+                socket.server.sockets.emit<DTM.INewScore>("newScore", {
+                    score: socket.clientData.score,
+                    username: socket.clientData.username,
+
+                });
+            }
         }
-
-
-        socket.clientData.score = socket.clientData.score + point;
-        socket.server.sockets.emit<DTM.INewScore>("newScore", {
-            score: socket.clientData.score,
-            username: socket.clientData.username,
-            point: point
-        });
-
     }
+
+    private onNextRoundTime = (io: SocketIO.Server, time: number) => {
+        if (time <= 0) {
+            var newEquation = Game.startNewRound();
+            io.sockets.emit<DTM.IEquation>("newRound", newEquation);
+        }
+
+        io.sockets.emit<number>("nextRoundTime", time);
+    }
+
     private onDisconnected = (socket: SocketIO.Socket) => {
         // echo globally that this client has left
         if (socket && socket.broadcast)

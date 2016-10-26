@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Client } from "./client";
 import { Game, IGame } from "./game";
-import { DTM } from "../../shared/dtm";
+import { DTM } from "../shared/dtm";
 
 declare var io: SocketIOClientStatic;
 
@@ -9,7 +9,8 @@ declare var io: SocketIOClientStatic;
 
 export interface MainState {
     connection: DTM.IConnection;
-    gameMessage: string;
+    roundOver: DTM.IRoundOver;
+    nextRoundTime: number;
 }
 
 
@@ -26,6 +27,8 @@ export class Main extends React.Component<any, MainState> {
         this.ioSocket.on<DTM.INewScore>("newScore", this.onNewScore);
         this.ioSocket.on<DTM.IRoundOver>("roundOver", this.onRoundOver)
         this.ioSocket.on<DTM.IEquation>("newRound", this.onNewRound)
+        this.ioSocket.on<number>("nextRoundTime", this.onNextRoundTime)
+
 
         this.state = {
             connection: {
@@ -33,11 +36,14 @@ export class Main extends React.Component<any, MainState> {
                 equation: null,
                 clientData: {
                     score: 0,
-                    username: "unknown"
+                    username: "unknown",
+                    lastRound: 0
                 },
                 clients: []
+
             },
-            gameMessage: "Lets start!"
+            roundOver: null,
+            nextRoundTime: 0
         }
     }
 
@@ -49,23 +55,23 @@ export class Main extends React.Component<any, MainState> {
         return (
             <div>
                 <div className="row">
-                    <div className="col-sm-6 offset-sm-1">
+                    <div className="col-sm-8 offset-sm-2">
                         <h1 className="display-1 text-primary">fastmath</h1>
-                    </div>
-                    <div className="col-sm-4">
-                        {this.state.connection.equation &&
-                            <h1 className="display-3 text-primary"><span className="text-nowrap">round: {this.state.connection.equation.roundID}</span></h1>
-                        }
-                        <h1 className="display-3 text-primary"><span className="text-nowrap">score: {this.state.connection.clientData.score}</span></h1>
+                        <h4 className="display-4 text-primary">
+                            {this.state.connection.equation &&
+                                <span className="text-nowrap">round: {this.state.connection.equation.roundID}&nbsp;&nbsp;</span>
+                            }
+                            <span className="text-nowrap">score: {this.state.connection.clientData.score}</span>
+                        </h4>
                     </div>
                 </div>
                 <div className="row">
 
-                    <div className="col-sm-6 offset-sm-1">
+                    <div className="col-sm-8 offset-sm-2">
                         {this.state.connection.isEnabled &&
                             <div>
                                 <h2 className="display-4">Hello <strong>{this.state.connection.clientData.username}</strong>!</h2>
-                                <Game message={this.state.gameMessage} equation={this.state.connection.equation} handleYesClick={this.handleYesClick} handleNoClick={this.handleNoClick} />
+                                <Game nextRoundTime={this.state.nextRoundTime} roundOver={this.state.roundOver} equation={this.state.connection.equation} handleYesClick={this.handleYesClick} handleNoClick={this.handleNoClick} />
                             </div>
                         }
                         {!this.state.connection.isEnabled && this.state.connection.clientData.username != "unknown" &&
@@ -76,22 +82,30 @@ export class Main extends React.Component<any, MainState> {
                         }
                     </div>
 
-                    <div className="col-sm-4">
+                    <div className="col-sm-8 offset-sm-2 mt-3 mb-3">
                         <ul className="list-group">
                             <li href="#" className="list-group-item active">
-                                <h5 className="list-group-item-heading">
-                                    {this.state.connection.clients.length}
-                                    {this.state.connection.clients.length === 1 &&
-                                        <span> player also playing</span>
-                                    }
-                                    {this.state.connection.clients.length > 1 &&
-                                        <span> players also playing</span>
-                                    }
-                                    <span>...</span>
-                                </h5>
+                                {this.state.connection.clients.length > 0 &&
+                                    <h5 className="list-group-item-heading">
+                                        {this.state.connection.clients.length}
+                                        {this.state.connection.clients.length === 1 &&
+                                            <span> player also playing</span>
+                                        }
+                                        {this.state.connection.clients.length > 1 &&
+                                            <span> players also playing</span>
+                                        }
+                                        <span>...</span>
+                                    </h5>
+                                }
+
+                                {this.state.connection.clients.length === 0 &&
+                                    <h5 className="list-group-item-heading">
+                                        <a target="_blank" href="https://goo.gl/kxK4L9" className="text-white">You are all alone!</a>
+                                    </h5>
+                                }
                             </li>
                             {this.state.connection.clients.map((client) =>
-                                <Client key={client.username} username={client.username} score={client.score} />
+                                <Client key={client.username} username={client.username} lastRound={client.lastRound} score={client.score} />
                             )}
                         </ul>
                     </div>
@@ -128,11 +142,13 @@ export class Main extends React.Component<any, MainState> {
 
     onRoundOver = (data: DTM.IRoundOver) => {
         this.state.connection.equation.awnsered = true;
-        this.state.gameMessage = data.message;
+        this.state.roundOver = data;
+        console.log(data);
         this.setState(this.state);
     }
     onNewRound = (data: DTM.IEquation) => {
         this.state.connection.equation = data;
+        this.state.roundOver = null;
         this.setState(this.state);
     }
     onNoRoom = (data: DTM.IConnection) => {
@@ -152,6 +168,11 @@ export class Main extends React.Component<any, MainState> {
         this.state.connection.clients = this.state.connection.clients.filter((el) => {
             return el.username !== data.username;
         });
+        this.setState(this.state);
+    }
+
+    onNextRoundTime = (data:number) =>{
+        this.state.nextRoundTime = data;
         this.setState(this.state);
     }
 

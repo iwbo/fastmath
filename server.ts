@@ -17,8 +17,10 @@ var server = app.listen(app.get("port"), () =>{
 });
 
 var io = socketio(server);
+// add socket io logic
 var ioConnection = new IoConnection(io);
 
+module.exports = app;
 
 
 

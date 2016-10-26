@@ -16,7 +16,7 @@
         },
         {
             "taskName": "typescript build",
-            "args": ["tsc server/app"]
+            "args": ["tsc server"]
         }
     ]
 }

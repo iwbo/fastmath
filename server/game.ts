@@ -1,7 +1,9 @@
 import { DTM } from "../shared/dtm";
+import * as events from "events";
 export module Game {
     export var currentRoundID = 0;
     var rounds: DTM.IRound[] = [];
+    export var emitter = new events.EventEmitter();
     // var number1 = 0;
     // var number2 = 0
     // var operator = "";
@@ -14,8 +16,13 @@ export module Game {
         { name: "/", func: function (a: number, b: number) { return a / b; } },
         { name: "*", func: function (a: number, b: number) { return a * b; } }
     ];
-    export function getNextEquation(): DTM.IEquation {
+
+    var totalRoundTime = 20;
+    var roundTime = totalRoundTime;
+    var roundInterval: NodeJS.Timer;
+    export function startNewRound(): DTM.IEquation {
         currentRoundID++;
+        stopRound();
         var equation = getRandomEquation(currentRoundID);
 
         var correctAwnser = equation.awnser;
@@ -33,14 +40,21 @@ export module Game {
             hasWinner: false
         }
         rounds.push(round);
-
+      
+        roundInterval = setInterval(()=>{
+            emitter.emit("nextRoundTime", roundTime--);
+        }, 1000 * 1);
         return equation;
+    }
+    export function stopRound(){
+        clearInterval(roundInterval);
+        roundTime = totalRoundTime;
     }
     export function getLastEquation(): DTM.IEquation {
         if (rounds.length > 0) {
             return rounds[rounds.length - 1].equation;
         } else {
-            return getNextEquation();
+            return startNewRound();
         }
     }
 

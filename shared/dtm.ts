@@ -40,6 +40,7 @@ export module DTM {
     export interface IClientData {
         username: string;
         score: number;
+        lastRound: number;
     }
 
 
@@ -54,10 +55,11 @@ export module DTM {
     export interface INewScore {
         username: string;
         score: number;
-        point: number;
     }
     export interface IRoundOver {
-        message: string;
+        youAnswered: boolean;
+        point: number;
+        winner: string;
     }
 
     export interface IAnswer {

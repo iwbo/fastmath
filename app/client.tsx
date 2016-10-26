@@ -1,5 +1,5 @@
 import * as React from "react";
-import { DTM } from "../../shared/dtm";
+import { DTM } from "../shared/dtm";
 
 
 export class Client extends React.Component<DTM.IClientData, any> {
