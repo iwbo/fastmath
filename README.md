@@ -10,4 +10,6 @@ npm install
 npm start
 ```
 ### Play
-In Chrome navigate to [http://localhost:31111](http://localhost:31111) 
+After `npm start` navigate to [http://localhost:31111](http://localhost:31111)
+
+Or go to the demo page at [https://fastmath.azurewebsites.net](https://fastmath.azurewebsites.net)
