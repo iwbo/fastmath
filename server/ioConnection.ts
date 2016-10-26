@@ -65,12 +65,14 @@ export class IoConnection {
 
     }
     private connectionNotAllowed = (socket: SocketIO.Socket) => {
+        
         socket.emit<DTM.IConnection>("noRoom", {
             isEnabled: false,
             equation: null,
             clientData: socket.clientData,
             clients: []
         });
+        socket.disconnect();
     }
 
     private onAnswer = (socket: SocketIO.Socket, data: DTM.IAnswer) => {
