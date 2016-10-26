@@ -56,7 +56,6 @@ export class Main extends React.Component<any, MainState> {
             <div>
                 <div className="row">
                     <div className="col-sm-8 offset-sm-2">
-                        <h1 className="display-1 text-primary">fastmath</h1>
                         <h4 className="display-4 text-primary">
                             {this.state.connection.equation &&
                                 <span className="text-nowrap">round: {this.state.connection.equation.roundID}&nbsp;&nbsp;</span>
@@ -143,7 +142,6 @@ export class Main extends React.Component<any, MainState> {
     onRoundOver = (data: DTM.IRoundOver) => {
         this.state.connection.equation.awnsered = true;
         this.state.roundOver = data;
-        console.log(data);
         this.setState(this.state);
     }
     onNewRound = (data: DTM.IEquation) => {

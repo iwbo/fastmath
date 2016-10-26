@@ -3,11 +3,10 @@ import * as socketio from "socket.io";
 import { IoConnection } from "./server/ioConnection";
 
 var app = express();
-app.set("port", process.env.PORT || 3000);
+app.set("port", process.env.PORT || 31111);
 
 // Routing
 app.use("/", express.static(__dirname + "/public"));
-app.use("/libs", express.static(__dirname + "/node_modules"));
 app.get("/", function(req,res) {
   res.sendfile("public/index.html");
 });

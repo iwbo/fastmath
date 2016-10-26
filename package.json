@@ -5,7 +5,8 @@
   "description": "Much math. Very number. Wow.",
   "author": "Kert Kaelep",
   "scripts": {
-    "start": "node server"
+    "start": "node server.js",
+    "prestart": "webpack && tsc server"
   },
   "dependencies": {
     "express": "4.13.4",
