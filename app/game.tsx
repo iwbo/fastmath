@@ -24,7 +24,7 @@ export class Game extends React.Component<IGame, any> {
             <div >
                 {this.props.equation &&
                     <div className="card card-block text-xs-center mt-3">
-                        <h1 className="display-1">{this.props.equation.number1} {this.props.equation.operator} {this.props.equation.number2}= {this.props.equation.awnser}?</h1>
+                        <h1 className="display-1">{this.props.equation.number1} {this.props.equation.operator} {this.props.equation.number2}&nbsp;= {this.props.equation.awnser}&nbsp;?</h1>
 
                         {(this.props.roundOver === null || !this.props.roundOver.youAnswered) &&
                             <div className="btn-group btn-group-lg mt-3">
@@ -57,7 +57,7 @@ export class Game extends React.Component<IGame, any> {
                         {(this.props.roundOver && !this.props.roundOver.youAnswered && this.props.roundOver.winner) &&
 
                             <h4 className="display-4">
-                                 <strong>{this.props.roundOver.winner}</strong> is the winner
+                                <strong>{this.props.roundOver.winner}</strong> is the winner
                             </h4>
                         }
 

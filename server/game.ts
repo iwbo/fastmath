@@ -40,13 +40,13 @@ export module Game {
             hasWinner: false
         }
         rounds.push(round);
-      
-        roundInterval = setInterval(()=>{
+
+        roundInterval = setInterval(() => {
             emitter.emit("nextRoundTime", roundTime--);
         }, 1000 * 1);
         return equation;
     }
-    export function stopRound(){
+    export function stopRound() {
         clearInterval(roundInterval);
         roundTime = totalRoundTime;
     }
@@ -97,13 +97,19 @@ export module Game {
         var operator = operators[Math.floor(Math.random() * operators.length)];
         var _operatorName = operator.name;
         var _correctAwnser = operator.func(_number1, _number2);
-        return {
-            number1: _number1,
-            number2: _number2,
-            operator: _operatorName,
-            awnser: _correctAwnser,
-            roundID: roundID,
-            awnsered: false, // used on the client side
+
+        if (_correctAwnser % 1 === 0) // is whole nmber
+        {
+            return {
+                number1: _number1,
+                number2: _number2,
+                operator: _operatorName,
+                awnser: _correctAwnser,
+                roundID: roundID,
+                awnsered: false, // used on the client side
+            }
+        } else { // try again
+            return getRandomEquation(roundID);
         }
     }
 
