@@ -25,15 +25,15 @@ export module DTM {
         hasWinner: boolean;
         id: number,
         equation: IEquation,
-        correctAwnser: number
+        correctAnswer: number
     }
     export interface IEquation {
         number1: number;
         number2: number;
-        awnser: number;
+        answer: number;
         operator: string;
         roundID: number;
-        awnsered: boolean;
+        answered: boolean;
     }
 
 

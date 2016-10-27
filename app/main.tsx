@@ -5,21 +5,18 @@ import { DTM } from "../shared/dtm";
 
 declare var io: SocketIOClientStatic;
 
-
-
 export interface MainState {
     connection: DTM.IConnection;
     roundOver: DTM.IRoundOver;
     nextRoundTime: number;
 }
 
-
-
 export class Main extends React.Component<any, MainState> {
     constructor(props: any) {
         super(props);
 
         this.ioSocket = io();
+        // setup socket events
         this.ioSocket.on<DTM.IConnection>("noRoom", this.onNoRoom);
         this.ioSocket.on<DTM.IConnection>("connected", this.onConnected);
         this.ioSocket.on<DTM.IClientData>("clientConnected", this.onClientConnected);
@@ -29,7 +26,7 @@ export class Main extends React.Component<any, MainState> {
         this.ioSocket.on<DTM.IEquation>("newRound", this.onNewRound)
         this.ioSocket.on<number>("nextRoundTime", this.onNextRoundTime)
 
-
+        // start with a empty state
         this.state = {
             connection: {
                 isEnabled: false,
@@ -50,6 +47,78 @@ export class Main extends React.Component<any, MainState> {
     ioSocket: SocketIOClient.Socket;
 
 
+    handleYesClick = (e: React.MouseEvent<any>) => {
+        this.sendAnswer(true);
+    }
+    handleNoClick = (e: React.MouseEvent<any>) => {
+        this.sendAnswer(false);
+    }
+
+    onNewScore = (data: DTM.INewScore) => {
+        // update score number
+
+
+        if (data.username === this.state.connection.clientData.username) { // if it's current clients score
+            this.state.connection.clientData.score = data.score;
+        } else { // if it's somebodies else score
+            this.state.connection.clients.forEach(client => {
+                if (client.username === data.username) {
+                    client.score = data.score;
+                }
+            });
+        }
+
+        this.setState(this.state);
+    }
+
+    onRoundOver = (data: DTM.IRoundOver) => {
+        // round over or client answered
+
+        this.state.connection.equation.answered = true;
+        this.state.roundOver = data;
+        this.setState(this.state);
+    }
+    onNewRound = (data: DTM.IEquation) => {
+        this.state.connection.equation = data;
+        this.state.roundOver = null;
+        this.setState(this.state);
+    }
+    onNoRoom = (data: DTM.IConnection) => {
+        this.state.connection = data;
+        this.setState(this.state);
+    }
+    onConnected = (data: DTM.IConnection) => {
+        // current client connected, add its connected data
+
+        this.state.connection = data;
+        this.setState(this.state);
+    }
+    onClientConnected = (data: DTM.IClientData) => {
+        // new client connected, add it to other clients list
+
+        this.state.connection.clients.push(data);
+        this.setState(this.state);
+
+    }
+    onClientDisconnected = (data: DTM.IClientData) => {
+        // remove client from the other clients list
+        this.state.connection.clients = this.state.connection.clients.filter((el) => {
+            return el.username !== data.username;
+        });
+        this.setState(this.state);
+    }
+
+    onNextRoundTime = (data: number) => {
+        // round time updated
+
+        this.state.nextRoundTime = data;
+        this.setState(this.state);
+    }
+
+    sendAnswer(yes: boolean) {
+        // send answer
+        this.ioSocket.emit<DTM.IAnswer>("answer", { roundID: this.state.connection.equation.roundID, yes: yes });
+    }
 
     render() {
         return (
@@ -113,69 +182,6 @@ export class Main extends React.Component<any, MainState> {
                 </div>
             </div>
         );
-    }
-
-    handleYesClick = (e: React.MouseEvent<any>) => {
-        this.sendAwnser(true);
-    }
-    handleNoClick = (e: React.MouseEvent<any>) => {
-        this.sendAwnser(false);
-    }
-
-    onNewScore = (data: DTM.INewScore) => {
-
-
-        if (data.username === this.state.connection.clientData.username) {
-            this.state.connection.clientData.score = data.score;
-
-        } else {
-            this.state.connection.clients.forEach(client => {
-                if (client.username === data.username) {
-                    client.score = data.score;
-                }
-            });
-        }
-
-        this.setState(this.state);
-    }
-
-    onRoundOver = (data: DTM.IRoundOver) => {
-        this.state.connection.equation.awnsered = true;
-        this.state.roundOver = data;
-        this.setState(this.state);
-    }
-    onNewRound = (data: DTM.IEquation) => {
-        this.state.connection.equation = data;
-        this.state.roundOver = null;
-        this.setState(this.state);
-    }
-    onNoRoom = (data: DTM.IConnection) => {
-        this.state.connection = data;
-        this.setState(this.state);
-    }
-    onConnected = (data: DTM.IConnection) => {
-        this.state.connection = data;
-        this.setState(this.state);
-    }
-    onClientConnected = (data: DTM.IClientData) => {
-        this.state.connection.clients.push(data);
-        this.setState(this.state);
-
-    }
-    onClientDisconnected = (data: DTM.IClientData) => {
-        this.state.connection.clients = this.state.connection.clients.filter((el) => {
-            return el.username !== data.username;
-        });
-        this.setState(this.state);
-    }
-
-    onNextRoundTime = (data:number) =>{
-        this.state.nextRoundTime = data;
-        this.setState(this.state);
-    }
-
-    sendAwnser(yes: boolean) {
-        this.ioSocket.emit<DTM.IAnswer>("answer", { roundID: this.state.connection.equation.roundID, yes: yes });
     }
 
 }

@@ -24,7 +24,7 @@ export class Game extends React.Component<IGame, any> {
             <div >
                 {this.props.equation &&
                     <div className="card card-block text-xs-center mt-3">
-                        <h1 className="display-1">{this.props.equation.number1} {this.props.equation.operator} {this.props.equation.number2}&nbsp;= {this.props.equation.awnser}&nbsp;?</h1>
+                        <h1 className="display-1">{this.props.equation.number1} {this.props.equation.operator} {this.props.equation.number2}&nbsp;= {this.props.equation.answer}&nbsp;?</h1>
 
                         {(this.props.roundOver === null || !this.props.roundOver.youAnswered) &&
                             <div className="btn-group btn-group-lg mt-3">

@@ -24,7 +24,7 @@ export class IoConnection {
                 lastRound: 0
             }
 
-        // get custom client data from alread connected clients
+        // get custom client data from already connected clients
         var clients = socket.server.sockets.clients(null).connected;
         var otherClients: DTM.IClientData[] = [];
         for (var id in clients) {
@@ -34,11 +34,10 @@ export class IoConnection {
         }
 
 
-        if (otherClients.length < 10) // for up to 10 concurrent users can play
-        {
+        if (otherClients.length < 10){ // for up to 10 concurrent users can play
             this.connectionAllowed(socket, otherClients);
         } else {
-            // displayies a "No room for you" message to the client 
+            // display a "No room for you" message to the client 
             this.connectionNotAllowed(socket);
         }
 
@@ -49,7 +48,7 @@ export class IoConnection {
         // send back custom connection info to caller
         socket.emit<DTM.IConnection>("connected", {
             isEnabled: true,
-            equation: Game.getLastEquation(),
+            equation: Game.getLastEquation(), // get the last equation or if no equestion start the game
             clientData: socket.clientData,
             clients: otherClients
         });
@@ -123,7 +122,7 @@ export class IoConnection {
     }
 
     private onNextRoundTime = (io: SocketIO.Server, time: number) => {
-        if (time <= 0) {
+        if (time <= 0) { // start a new round
             var newEquation = Game.startNewRound();
             io.sockets.emit<DTM.IEquation>("newRound", newEquation);
         }

@@ -3,9 +3,6 @@ import { DTM } from "../shared/dtm";
 
 
 export class Client extends React.Component<DTM.IClientData, any> {
-
-
-
     render() {
         return (
             <li className="list-group-item">
@@ -14,5 +11,4 @@ export class Client extends React.Component<DTM.IClientData, any> {
             </li>
         );
     }
-
 }
